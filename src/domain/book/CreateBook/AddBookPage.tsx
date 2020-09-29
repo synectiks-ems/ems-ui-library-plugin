@@ -44,17 +44,22 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
               noOfCopies:"",
               noOfCopiesAvailable: "",
               isbNo:"",
-              departmentId:""
+              departmentId:"",
+              batchId: ""
 
             },
             bookData:{
                 department:{
                     id:''
+                },
+                batch:{
+                  id: ''
                 }
             },
             departments: [],
         };
-        this.createDepartment = this.createDepartment.bind(this);   
+        this.createDepartment = this.createDepartment.bind(this);  
+        this.createBatch = this.createBatch.bind(this); 
     }
     
     async registerSocket() {
@@ -97,6 +102,23 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
         }
         return departmentsOptions;
       }
+
+      createBatch(batches: any) {
+        let batchesOptions = [
+          <option key={0} value="">
+            Select batch
+          </option>,
+        ];
+        for (let i = 0; i < batches.length; i++) {
+            batchesOptions.push(
+            <option key={batches[i].id} value={batches[i].id}>
+              {batches[i].batch}
+            </option>
+          );
+        }
+        return batchesOptions;
+      }
+
     // showDetail(e: any, bShow: boolean,editObj: any, modelHeader: any) {
     //     e && e.preventDefault();
     //     const { lbObj } = this.state;
@@ -173,6 +195,15 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             },
           },
         });
+      } else if (name === 'batch') {
+        this.setState({
+          bookData: {
+            ...bookData,
+            batch: {
+              id: value,
+            },
+          },
+        });
       } 
       else{
         this.setState({
@@ -208,6 +239,7 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             noOfCopiesAvailable: bookObj.noOfCopiesAvailable,
             isbNo: bookObj.isbNo,
             departmentId: bookData.department.id,
+            batchId: bookData.batch.id
         };
         return bookInput;
     }
@@ -542,6 +574,26 @@ return (
                   createLibraryDataCache.departments !== undefined
                     ? this.createDepartment(
                         createLibraryDataCache.departments
+                      )
+                    : null}
+              </select>
+            </div>
+            <div>
+           <label htmlFor="">
+               Batch<span style={{ color: 'red' }}> * </span></label>
+              <select required name="batch" 
+              id="batch" 
+              onChange={this.onChange}  
+              value={bookData.batch.id} 
+              className="gf-form-input fwidth"
+              style={{ width: '255px' }}>
+                {/* {this.createDepartment(createLibraryDataCache.departments)} */}
+                {createLibraryDataCache !== null &&
+                  createLibraryDataCache !== undefined &&
+                  createLibraryDataCache.batches !== null &&
+                  createLibraryDataCache.batches !== undefined
+                    ? this.createBatch(
+                        createLibraryDataCache.batches
                       )
                     : null}
               </select>
