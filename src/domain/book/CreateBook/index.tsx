@@ -8,10 +8,8 @@ import AddLibraryPage from './AddIssueBookPage';
 import AddBookPage from './AddBookPage';
 import {CREATE_LIBRARY_FILTER_DATA_CACHE, ISSUE_BOOK_LIST, BOOK_LIST} from '../_queries';
 import AddIssueBookPage from './AddIssueBookPage';
-// import LibraryListPage from './LibraryListPage';
 import BookListPage from './BookListPage';
-// import UpdateBookList from './UpdateBookList';
-
+import IssueBookListPage from './IssueBookListPage'
 
 export interface LibraryProps extends React.HTMLAttributes<HTMLElement> {
   [data: string]: any;
@@ -141,9 +139,9 @@ class Library extends React.Component<LibraryProps, any> {
   if(tabNo===2){
     this.getcreateLibraryFilterDataCache();
   }
-  // if(tabNo===3){
-  //   this.getcreateLibraryFilterDataCache();
-  // }
+  if(tabNo===3){
+    this.getcreateLibraryFilterDataCache();
+  }
   // if(tabNo===4){
   //   this.getcreateLibraryFilterDataCache();
   // }
@@ -185,16 +183,16 @@ class Library extends React.Component<LibraryProps, any> {
              Book List Page
             </NavLink>
           </NavItem>
-          {/* <NavItem className="cursor-pointer">
+          <NavItem className="cursor-pointer">
             <NavLink
               className={`vertical-nav-link ${activeTab === 3 ? 'side-active' : ''}`}
               onClick={() => {
                 this.toggleTab(3);
               }}
             >
-              Library List Page
+              IssueBook List Page
             </NavLink>
-          </NavItem> */}
+          </NavItem>
           {/* <NavItem className="cursor-pointer">
             <NavLink
               className={`vertical-nav-link ${activeTab === 4 ? 'side-active' : ''}`}
@@ -234,14 +232,14 @@ class Library extends React.Component<LibraryProps, any> {
            )
         }
           </TabPane> 
-          {/* {/* <TabPane tabId={3}>
+          { <TabPane tabId={3}>
           {
-           user !== null && createLibraryDataCache !== null?
-            <LibraryListPage user={user} createLibraryDataCache={createLibraryFilterDataCache.createLibraryDataCache}/>
+           user !== null && createLibraryDataCache !== null  &&  issueBookList !== null?
+            <IssueBookListPage user={user} createLibraryDataCache={createLibraryDataCache.createLibraryDataCache} issueBookList={issueBookList} />
               :
             null
         }
-          </TabPane> */}
+          </TabPane> }
           {/* <TabPane tabId={4}>
           {
            user !== null && createLibraryFilterDataCache !== null?

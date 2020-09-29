@@ -29,6 +29,7 @@ export const ADD_ISSUE_BOOK = gql`
             id
             bookTitle
             noOfCopies
+            noOfCopiesAvailable
           }
           department {
             id
