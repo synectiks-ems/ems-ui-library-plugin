@@ -488,11 +488,11 @@ async getcreateLibraryFilterDataCache() {
             <div className="container-fluid" style={{padding: '0px'}}>
               <div className="m-b-1 bg-heading-bgStudent studentListFlex p-point5">
                 <div className="">
-                  <h4 className="ptl-06">IssueBook Details</h4>
+                  <h4 className="ptl-06">Issue Book Details</h4>
                 </div>
                 <div className="">
                   <a
-                    className="btn btn-primary m-l-1"
+                     className="btn btn-primary m-l-1  pull-right"
                     onClick={() => {
                       this.toggleTab(2);
                     }}
@@ -500,7 +500,7 @@ async getcreateLibraryFilterDataCache() {
                     Back
                   </a>
                   <a
-                    className="btn btn-primary m-l-1"
+                    className="btn btn-primary m-l-1  pull-right"
                     onClick={(e: any) => {
                       print();
                     }}

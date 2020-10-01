@@ -50,17 +50,18 @@ export interface IssueBookDetailsProps extends React.HTMLAttributes<HTMLElement>
     return (    
       <TabContent activeTab={activeTab} className="ltab-contianer p-1">
         <div className="row">
-          <div className="col-sm-2 col-xs-4 m-b-1 adminDetails">
+          {/* <div className="col-sm-2 col-xs-4 m-b-1 adminDetails">
             <span className="profile-label w-8">
                Department:
             </span>
             {issueBookObj.department !== undefined && (
             <span>{issueBookObj.department.name}</span>
             )}
-           </div>
+           </div> */}
           
           </div>
-          <h4> BookTitle : {issueBookObj.book !== undefined && (
+          <h4> <span className="profile-label">Book Title:</span>
+            {issueBookObj.book !== undefined && (
             <span>{issueBookObj.book.bookTitle}</span>)}</h4>
           <table id="libraryTable" className="striped-table fwidth bg-white p-3 m-t-1">
             <thead>
@@ -72,6 +73,7 @@ export interface IssueBookDetailsProps extends React.HTMLAttributes<HTMLElement>
                   <th>Batch</th>
                   <th>Student</th>
                   <th>Book</th>
+                  <th>Department</th>
              </tr>
             </thead>
               <td>{issueBookObj.strIssueDate}</td>
@@ -91,6 +93,11 @@ export interface IssueBookDetailsProps extends React.HTMLAttributes<HTMLElement>
                <td>
               {issueBookObj.book !== undefined && (
              <span>{issueBookObj.book.bookTitle}</span>
+              )}
+              </td>
+              <td>
+              {issueBookObj.department !== undefined && (
+             <span>{issueBookObj.department.name}</span>
               )}
               </td>
                     

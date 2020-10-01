@@ -750,3 +750,112 @@ input#dtPickerNd {
   width: 130px;
   margin-right: 10px;
 }
+
+.student-profile-container .student-photo-container .buttons-container {
+  display: inline-block;
+}
+
+.student-profile-container .student-photo-container .buttons-container .btn {
+  margin-right: 3px;
+  margin-bottom: 3px;
+}
+
+.student-profile-container .profile-label {
+  color: rgb(78, 144, 203) !important;
+  padding-right: 4px;
+  font-weight: 500;
+}
+
+.student-profile-container .details-container {
+  border-bottom: 1px solid #cecece;
+}
+
+.student-profile-container .details-container:last-child {
+  border-bottom: 0px;
+}
+
+.dblue-text {
+  color: #307dc2;
+}
+
+.box-text {
+  border: 1px solid #b5b5b5;
+  color: #b5b5b5;
+  margin: 10px 16px 0px 0px;
+  padding: 5px;
+}
+
+.cust-box-text {
+  border: 1px solid #b5b5b5;
+  color: #b5b5b5;
+  padding: 5px;
+}
+
+.w-70 {
+  width: 70%;
+}
+
+.w-20 {
+  width: 20%;
+}
+
+.w-40 {
+  width: 40%;
+}
+
+#txt-align > tr > td {
+  text-align: left !important;
+  border: 1px solid #868686;
+}
+
+#txt-align > tr > th {
+  background-color: rgb(216, 216, 216);
+  border: 1px solid #868686;
+}
+
+#txt-align {
+  border-radius: 5px;
+}
+
+.btn-cust-width {
+  width: 115px;
+}
+
+.cust-btn-payment {
+  width: 130px;
+  float: right;
+  padding-right: 1rem;
+}
+
+.cust-wh {
+  height: 31px;
+  width: 120px;
+}
+
+.fflex {
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.bdr-bpttom {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #b5b5b5;
+}
+
+.cust-height {
+  height: 32px !important;
+}
+
+.active > button > span.uparrow {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 11px solid #1486c7;
+}
+
+.asflex {
+  display: flex;
+  align-items: center;
+}

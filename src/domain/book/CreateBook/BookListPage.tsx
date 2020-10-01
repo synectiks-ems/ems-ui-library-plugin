@@ -536,7 +536,7 @@ async getcreateLibraryFilterDataCache() {
                 </div>
                 <div className="">
                   <a
-                    className="btn btn-primary m-l-1"
+                     className="btn btn-primary m-l-1  pull-right"
                     onClick={() => {
                       this.toggleTab(2);
                     }}
@@ -544,7 +544,7 @@ async getcreateLibraryFilterDataCache() {
                     Back
                   </a>
                   <a
-                    className="btn btn-primary m-l-1"
+                    className="btn btn-primary m-l-1  pull-right"
                     onClick={(e: any) => {
                       print();
                     }}

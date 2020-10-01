@@ -50,14 +50,14 @@ export interface BookDetailsProps extends React.HTMLAttributes<HTMLElement> {
     return (    
       <TabContent activeTab={activeTab} className="ltab-contianer p-1">
         <div className="row">
-          <div className="col-sm-2 col-xs-4 m-b-1 adminDetails">
+          {/* <div className="col-sm-2 col-xs-4 m-b-1 adminDetails">
             <span className="profile-label w-8">
                Department:
             </span>
             {bookObj.department !== undefined && (
             <span>{bookObj.department.name}</span>
             )}
-           </div>
+           </div> */}
            {/* <div className="col-sm-3 col-xs-6 m-b-4 adminDetails">
              <span className="profile-label w-15">
                 Semester:
@@ -72,7 +72,10 @@ export interface BookDetailsProps extends React.HTMLAttributes<HTMLElement> {
               )}
             </div> */}
           </div>
-          <h4> BookTitle :{bookObj.bookTitle}</h4>
+          <div className="col-sm-4 col-xs-12 m-b-2">
+                      <span className="profile-label">Book Title: </span>
+                      <span>{bookObj.bookTitle}</span>
+             </div>
           <table id="libraryTable" className="striped-table fwidth bg-white p-3 m-t-1">
             <thead>
              <tr>
@@ -83,6 +86,8 @@ export interface BookDetailsProps extends React.HTMLAttributes<HTMLElement> {
                   <th>Publisher</th>
                   <th>ISB NUMBER</th>
                   <th>NoOfCopies</th>
+                  <th>No Of Copies Available</th>
+                  <th>Department</th>
              </tr>
             </thead>
               <td>{bookObj.shelfNo}</td>
@@ -92,7 +97,10 @@ export interface BookDetailsProps extends React.HTMLAttributes<HTMLElement> {
               <td>{bookObj.publisher}</td>
               <td>{bookObj.isbNo}</td>
               <td>{bookObj.noOfCopies}</td>
-              <td>{bookObj.uniqueNo}</td>
+              <td>{bookObj.noOfCopiesAvailable}</td>
+              <td> {bookObj.department !== undefined && (
+            <span>{bookObj.department.name}</span>
+            )}</td>
             </table>
        </TabContent> 
     );
