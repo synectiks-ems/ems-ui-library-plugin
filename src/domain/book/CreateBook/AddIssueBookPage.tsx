@@ -39,7 +39,7 @@ class IssueBook<T = {[data: string]: any}> extends React.Component<IssueBookProp
         createLibraryDataCache: this.props.createLibraryDataCache,
         bookList: this.props.bookList,
         user:this.props.user,
-        // branchId: null,
+        branchId: null,
         // departmentId: null,
           // isModalOpen: false,
           errorMessage: "",
@@ -81,32 +81,37 @@ class IssueBook<T = {[data: string]: any}> extends React.Component<IssueBookProp
       this.createStudent = this.createStudent.bind(this); 
       this.registerSocket = this.registerSocket.bind(this);
       this.createDepartment = this.createDepartment.bind(this);   
-          this.isDatesOverlap = this.isDatesOverlap.bind(this);
+      this.isDatesOverlap = this.isDatesOverlap.bind(this);
 
   }
+
+  async componentDidMount(){
+    await this.registerSocket();
+  }
+  
   async registerSocket() {
     const socket = wsCmsBackendServiceSingletonClient.getInstance();
-    // socket.onmessage = (response: any) => {
-    //   let message = JSON.parse(response.data);
-    //   console.log('Book index. message received from server ::: ', message);
-    //   this.setState({
-    //     branchId: message.selectedBranchId,
-    //     academicYearId: message.selectedAcademicYearId,
-    //     departmentId: message.selectedDepartmentId,
-    //   });
-    //   console.log('Book index. branchId: ', this.state.branchId);
-    //   console.log('Book index. departmentId: ', this.state.departmentId);
-    //   console.log('Book index. ayId: ', this.state.academicYearId);
-    // };
+    socket.onmessage = (response: any) => {
+      let message = JSON.parse(response.data);
+      console.log('Book index. message received from server ::: ', message);
+      this.setState({
+        branchId: message.selectedBranchId,
+        academicYearId: message.selectedAcademicYearId,
+        departmentId: message.selectedDepartmentId,
+      });
+      console.log('Book index. branchId: ', this.state.branchId);
+      console.log('Book index. departmentId: ', this.state.departmentId);
+      console.log('Book index. ayId: ', this.state.academicYearId);
+    };
 
-    // socket.onopen = () => {
-    //   console.log("Book index. Opening websocekt connection on index.tsx. User : ",this.state.user.login);
-    //     // this.state.user
-    //     socket.send(this.state.user.login);
-    // }
-    // window.onbeforeunload = () => {
-    //   console.log('Book index. Closing websocekt connection on index.tsx');
-    // };
+    socket.onopen = () => {
+      console.log("Book index. Opening websocekt connection on index.tsx. User : ",this.state.user.login);
+        // this.state.user
+        socket.send(this.state.user.login);
+    }
+    window.onbeforeunload = () => {
+      console.log('Book index. Closing websocekt connection on index.tsx');
+    };
 }
 createDepartment(departments: any) {
   let departmentsOptions = [

@@ -52,6 +52,7 @@ class IssueBookGrid<T = {[data: string]: any}> extends React.Component<IssueBook
             errorMessage: '',
             successMessage: '',
             activeTab: 0,
+            branchId: null,
             issueBookListObj:{
               issueDate:"",
               dueDate:"",

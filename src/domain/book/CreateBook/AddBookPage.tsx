@@ -35,6 +35,7 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             createLibraryDataCache: this.props.createLibraryDataCache,
             errorMessage: "",
             successMessage: "",
+            branchId: null,
             bookObj: {
               shelfNo:"",
               bookTitle:"",
@@ -45,8 +46,8 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
               noOfCopiesAvailable: "",
               isbNo:"",
               departmentId:"",
-              batchId: ""
-
+              batchId: "",
+              branchId: ""
             },
             bookData:{
                 department:{
@@ -60,31 +61,36 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
         };
         this.createDepartment = this.createDepartment.bind(this);  
         this.createBatch = this.createBatch.bind(this); 
+        this.registerSocket = this.registerSocket.bind(this);
+    }
+    
+    async componentDidMount(){
+      await this.registerSocket();
     }
     
     async registerSocket() {
         const socket = wsCmsBackendServiceSingletonClient.getInstance();
-        // socket.onmessage = (response: any) => {
-        //   let message = JSON.parse(response.data);
-        //   console.log('Book index. message received from server ::: ', message);
-        //   this.setState({
-        //     branchId: message.selectedBranchId,
-        //     academicYearId: message.selectedAcademicYearId,
-        //     departmentId: message.selectedDepartmentId,
-        //   });
-        //   console.log('Book index. branchId: ', this.state.branchId);
-        //   console.log('Book index. departmentId: ', this.state.departmentId);
-        //   console.log('Book index. ayId: ', this.state.academicYearId);
-        // };
+        socket.onmessage = (response: any) => {
+          let message = JSON.parse(response.data);
+          console.log('Book index. message received from server ::: ', message);
+          this.setState({
+            branchId: message.selectedBranchId,
+            academicYearId: message.selectedAcademicYearId,
+            departmentId: message.selectedDepartmentId,
+          });
+          console.log('Book index. branchId: ', this.state.branchId);
+          console.log('Book index. departmentId: ', this.state.departmentId);
+          console.log('Book index. ayId: ', this.state.academicYearId);
+        };
     
-        // socket.onopen = () => {
-        //   console.log("Book index. Opening websocekt connection on index.tsx. User : ",this.state.user.login);
-        //     // this.state.user
-        //     socket.send(this.state.user.login);
-        // }
-        // window.onbeforeunload = () => {
-        //   console.log('Book index. Closing websocekt connection on index.tsx');
-        // };
+        socket.onopen = () => {
+          console.log("Book index. Opening websocekt connection on index.tsx. User : ",this.state.user.login);
+            // this.state.user
+            socket.send(this.state.user.login);
+        }
+        window.onbeforeunload = () => {
+          console.log('Book index. Closing websocekt connection on index.tsx');
+        };
     }
 
     createDepartment(departments: any) {
@@ -223,7 +229,7 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
     }
 
     getAddBookInput(bookObj: any){
-        const{bookData}=this.state;
+        const{bookData,branchId}=this.state;
         let id = null;
         // if(modelHeader === "Edit Library"){
         //     id = bookObj.id;
@@ -239,7 +245,8 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             noOfCopiesAvailable: bookObj.noOfCopiesAvailable,
             isbNo: bookObj.isbNo,
             departmentId: bookData.department.id,
-            batchId: bookData.batch.id
+            batchId: bookData.batch.id,
+            branchId: branchId
         };
         return bookInput;
     }

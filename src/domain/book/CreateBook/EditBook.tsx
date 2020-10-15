@@ -89,9 +89,31 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
     console.log('40. test bookobj data props:', this.props.bookobj);
     this.editInputValue();
   }
-    async registerSocket() {
-        const socket = wsCmsBackendServiceSingletonClient.getInstance();
+
+  async registerSocket() {
+    const socket = wsCmsBackendServiceSingletonClient.getInstance();
+    socket.onmessage = (response: any) => {
+      let message = JSON.parse(response.data);
+      console.log('Book index. message received from server ::: ', message);
+      this.setState({
+        branchId: message.selectedBranchId,
+        academicYearId: message.selectedAcademicYearId,
+        departmentId: message.selectedDepartmentId,
+      });
+      console.log('Book index. branchId: ', this.state.branchId);
+      console.log('Book index. departmentId: ', this.state.departmentId);
+      console.log('Book index. ayId: ', this.state.academicYearId);
+    };
+
+    socket.onopen = () => {
+      console.log("Book index. Opening websocekt connection on index.tsx. User : ",this.state.user.login);
+        // this.state.user
+        socket.send(this.state.user.login);
     }
+    window.onbeforeunload = () => {
+      console.log('Book index. Closing websocekt connection on index.tsx');
+    };
+}
 
  componentWillReceiveProps() {
       this.setState({
@@ -317,7 +339,7 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
 
 editInputValue() {
     // e && e.preventDefault();
-    const { booklistObj, bkObj, bookData } = this.state;
+    const { booklistObj, bkObj, bookData,branchId } = this.state;
     let bkValue: any = '';
     bkValue = this.props.bookobj;
     console.log('100. test bookobj data:', bkValue);
@@ -333,6 +355,7 @@ editInputValue() {
             noOfCopies: bkValue.noOfCopies,
             isbNo: bkValue.isbNo,
             departmentId: bkValue.departmentId,
+            branchId: branchId
         },
     });
     return;
@@ -359,7 +382,7 @@ editInputValue() {
   //       return bookInput;
   //   }
   getInput(booklistObj: any, modelHeader: any){
-    const{bookData}=this.state;
+    const{bookData,branchId}=this.state;
     // let id = null;
     // if(modelHeader === "EditBook"){
     //     id = booklistObj.id;
@@ -377,6 +400,7 @@ editInputValue() {
         noOfCopies: booklistObj.noOfCopies,
         isbNo: booklistObj.isbNo,
         departmentId: bookData.department.id,
+        branchId: branchId
     };
     return bookInput;
 }
