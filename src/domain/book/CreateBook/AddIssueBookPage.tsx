@@ -317,7 +317,7 @@ validateFields(issueBookObj: any, bookData: any){
       isValid = this.validateDates(issueBookObj.issueDate, issueBookObj.dueDate, issueBookObj.receivedDate);
       if(isValid === false){
           errorMessage = ERROR_MESSAGE_DATES_OVERLAP;
-          errorMessage = ERROR_MESSAGE_DATE_OVERLAP;
+          // errorMessage = ERROR_MESSAGE_DATE_OVERLAP;
       }
    }
     this.setState({
@@ -411,7 +411,7 @@ render() {
              : null
      }
      {
-         successMessage !== ""  ? 
+         successMessage !== ""  ?   
              <MessageBox id="mbox" message={successMessage} activeTab={1}/>        
              : null
      }
@@ -497,7 +497,15 @@ render() {
                                         }
                                         </select>
                                  </div> 
-
+                                 <div className="fwidth-modal-text m-r-1">
+                                        <label className="gf-form-label b-0 bg-transparent">No Of Copies Available<span style={{ color: 'red' }}> * </span></label>
+                                        <select name="bookId" id="bookId" onChange={this.onChange} value={issueBookObj.bookId} className="gf-form-label b-0 bg-transparent">
+                                        <option value="">Select No Of Copies Available</option>
+                                        {
+                                            commonFunctions.createSelectbox(bookList, "id", "id", "noOfCopiesAvailable")
+                                        }
+                                        </select>
+                                 </div>
                   
 
           <div>
