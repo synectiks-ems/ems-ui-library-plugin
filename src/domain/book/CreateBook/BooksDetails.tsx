@@ -90,7 +90,7 @@ export interface BookDetailsProps extends React.HTMLAttributes<HTMLElement> {
                   <th>Department</th>
              </tr>
             </thead>
-              <td>{bookObj.shelfNo}</td>
+              <td>{bookObj.shelfNumber}</td>
               <td>{bookObj.bookTitle}</td>
               <td>{bookObj.author}</td>
               <td>{bookObj.edition}</td>
@@ -98,9 +98,10 @@ export interface BookDetailsProps extends React.HTMLAttributes<HTMLElement> {
               <td>{bookObj.isbNo}</td>
               <td>{bookObj.noOfCopies}</td>
               <td>{bookObj.noOfCopiesAvailable}</td>
-              <td> {bookObj.department !== undefined && (
+              <td>{bookObj.name}</td>
+              {/* <td> {bookObj.department !== undefined && (
             <span>{bookObj.department.name}</span>
-            )}</td>
+            )}</td> */}
             </table>
        </TabContent> 
     );

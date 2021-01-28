@@ -62,11 +62,12 @@ export interface IssueBookDetailsProps extends React.HTMLAttributes<HTMLElement>
           </div>
           <h4> <span className="profile-label">Book Title:</span>
             {issueBookObj.book !== undefined && (
-            <span>{issueBookObj.book.bookTitle}</span>)}</h4>
+            <span>{issueBookObj.book.bookTitle}</span>)}
+            </h4>
           <table id="libraryTable" className="striped-table fwidth bg-white p-3 m-t-1">
             <thead>
              <tr>
-                 <th>Issued Date</th>
+                  <th>Issued Date</th>
                   <th>Due Date</th>
                   <th>Received Date</th>
                   <th>Book Status</th>
@@ -78,9 +79,14 @@ export interface IssueBookDetailsProps extends React.HTMLAttributes<HTMLElement>
             </thead>
               <td>{issueBookObj.strIssueDate}</td>
               <td>{issueBookObj.strDueDate}</td>
-              <td>{issueBookObj.strReceivedDate}</td>
+              <td>{issueBookObj.receivedDate}</td>
               <td>{issueBookObj.bookStatus}</td>
-              <td>
+              <td>{issueBookObj.batch}</td>
+              <td>{issueBookObj.studentName}</td>
+              <td>{issueBookObj.bookTitle}</td>
+              <td>{issueBookObj.name}</td>
+
+              {/* <td>
                {issueBookObj.batch !== undefined && (
                <span>{issueBookObj.batch.batch}</span>
                 )}
@@ -99,7 +105,7 @@ export interface IssueBookDetailsProps extends React.HTMLAttributes<HTMLElement>
               {issueBookObj.department !== undefined && (
              <span>{issueBookObj.department.name}</span>
               )}
-              </td>
+              </td> */}
                     
             </table>
        </TabContent> 

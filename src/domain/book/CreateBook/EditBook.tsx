@@ -6,7 +6,7 @@ import '../../../css/college-settings.css';
 import '../../../css/tabs.css'; 
 import {MessageBox} from '../../Message/MessageBox'
 import { withApollo } from 'react-apollo';
-import { ADD_BOOK, CREATE_LIBRARY_FILTER_DATA_CACHE } from '../_queries';
+import { ADD_BOOK, CREATE_LIBRARY_FILTER_DATA_CACHE, GET_BOOK_LIST } from '../_queries';
 import * as moment from 'moment';
 import wsCmsBackendServiceSingletonClient from '../../../wsCmsBackendServiceClient';
 
@@ -29,7 +29,34 @@ const ERROR_MESSAGE_SERVER_ERROR = "Due to some error in book service, book coul
 const SUCCESS_MESSAGE_BOOK_ADDED = "New book saved successfully";
 const SUCCESS_MESSAGE_BOOK_UPDATED = "book updated successfully";
 const ERROR_MESSAGE_DATES_OVERLAP = "Due Date cannot be prior or same as Issue date";
+class BookObj {
+  id: any;
+  shelfNo: any;
+  bookTitle: any;
+  author: any;
+  edition: any;
+  publisher: any;
+  isbNo: any;
+  noOfCopies: any;
+  // noOfCopiesAvailable: any;
+  department: any;
 
+  constructor(id: any, shelfNo: any, bookTitle: any, author: any, 
+              edition: any, publisher: any, isbNo: any, noOfCopies: any, 
+              // noOfCopiesAvailable: any, 
+              department: any) {
+    this.id = id;
+    this.shelfNo = shelfNo;
+    this.bookTitle = bookTitle;
+    this.author = author;
+    this.edition = edition;
+    this.publisher = publisher;
+    this.isbNo = isbNo;
+    this.noOfCopies = noOfCopies;
+    // this.noOfCopiesAvailable = noOfCopiesAvailable;
+    this.department = department;
+  }
+}
 
 class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any> {
     constructor(props: BookProps) {
@@ -47,9 +74,9 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             successMessage: '',
             activeTab: 0,
             booklistObj:{
-              // department:{
-              //   id:""
-              // },
+              department:{
+                id:""
+              },
                 shelfNo:'',
                 bookTitle:'',
                 author:'',
@@ -78,17 +105,43 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
         this.getcreateLibraryFilterDataCache = this.getcreateLibraryFilterDataCache.bind(this);
         }
     
-  async componentDidMount(){
+  // async componentDidMount(){
+  //   this.setState({
+  //     bkObj: this.props.data,
+  //   });
+  // await this.registerSocket();
+  //   // console.log('check batches:', this.props.batches);
+  //   console.log('1.test bkObj data:', this.state.bkObj);
+  //   console.log('30. test bookobj data state:', this.state.bookobj);
+  //   console.log('40. test bookobj data props:', this.props.bookobj);
+  //   this.editInputValue();
+  // }
+  async componentDidMount() {
+
+    await this.getBook();
+}
+getBook = async () => {
+    const { data } = await this.props.client.query({
+        query: GET_BOOK_LIST,
+        fetchPolicy: 'no-cache'
+    })
+    var arr = data.getBookList;
+    let i;
+    let finalAry = [];
+    for (i in arr) {
+      let obj = new BookObj(arr[i].id, arr[i].shelfNumber, arr[i].bookTitle, 
+                            arr[i].author, arr[i].publisher,arr[i].edition, arr[i].noOfCopies, 
+                            // arr[i].noOfCopiesAvailable,
+                            arr[i].isbNo, arr[i].department.name);
+        finalAry.push(obj);
+    }
+    console.log("Final Array : ", finalAry);
     this.setState({
-      bkObj: this.props.data,
+        bookList: finalAry,
     });
-  await this.registerSocket();
-    // console.log('check batches:', this.props.batches);
-    console.log('1.test bkObj data:', this.state.bkObj);
-    console.log('30. test bookobj data state:', this.state.bookobj);
-    console.log('40. test bookobj data props:', this.props.bookobj);
-    this.editInputValue();
-  }
+
+    console.log(" state variable Book data :::", this.state.bookList);
+}
 
   async registerSocket() {
     const socket = wsCmsBackendServiceSingletonClient.getInstance();
@@ -200,14 +253,29 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             },
         }).then((resp: any) => {
             console.log(
-                'Success in addBook Mutation. Exit code : '
-            ,resp.data.addBook.cmsBookVo.exitCode
-            );
+                'Success in addBook Mutation. Exit code : ',resp.data.addBook.cmsBookVo.exitCode);
             exitCode = resp.data.addBook.cmsBookVo.exitCode;
             let temp = resp.data.addBook.cmsBookVo.dataList; 
             console.log("New Book list : ", temp);
+            let i;
+            let ary = [];
+            let obj;
+            for (i in temp) {
+              obj = new BookObj(
+                temp[i].id,
+                 temp[i].shelfNo, 
+                 temp[i].bookTitle, 
+                 temp[i].author, 
+                 temp[i].edition, 
+                 temp[i].publisher, 
+                 temp[i].isbNo, 
+                 temp[i].noOfCopies, 
+                //  temp[i].noOfCopiesAvailable, 
+                 temp[i].department.name);
+              ary.push(obj);
+            }
             this.setState({
-                bookList: temp  
+                bookList: ary  
             });
         })
         .catch((error: any) => {
@@ -293,14 +361,16 @@ class BookGrid<T = {[data: string]: any}> extends React.Component<BookProps, any
             errorMessage = ERROR_MESSAGE_MANDATORY_FIELD_MISSING;
             isValid = false;
             }
+            // if(booklistObj.department.id === undefined || booklistObj.department.id === null || booklistObj.department.id === ""){
+            //   commonFunctions.changeTextBoxBorderToError((booklistObj.department.id === undefined || booklistObj.department.id === null) ? "" : booklistObj.department.id, "department");
             if(bookData.department.id === undefined || bookData.department.id === null || bookData.department.id === ""){
-              commonFunctions.changeTextBoxBorderToError((bookData.department.id === undefined || bookData.department.id === null) ? "" : bookData.department.id, "department");
-              errorMessage = ERROR_MESSAGE_MANDATORY_FIELD_MISSING;
+              commonFunctions.changeTextBoxBorderToError((bookData.department.id === undefined || bookData.department.id === null) ? "" : bookData.department.id, "department"); 
+            errorMessage = ERROR_MESSAGE_MANDATORY_FIELD_MISSING;
               isValid = false;
           }
             this.setState({
               errorMessage: errorMessage
-          });
+          }); 
           return isValid; 
           }   
 
@@ -347,7 +417,7 @@ editInputValue() {
         booklistObj: {
             ...booklistObj,
             id: bkValue.id,
-            shelfNo: bkValue.shelfNo,
+            shelfNo: bkValue.shelfNumber,
             bookTitle: bkValue.bookTitle,
             author: bkValue.author,
             publisher: bkValue.publisher,
@@ -400,6 +470,7 @@ editInputValue() {
         noOfCopies: booklistObj.noOfCopies,
         isbNo: booklistObj.isbNo,
         departmentId: bookData.department.id,
+        // departmentId: booklistObj.department.id,
         branchId: branchId
     };
     return bookInput;
@@ -534,11 +605,13 @@ return (
             </div> */}
            <div>
              <label className="gf-form-label b-0 bg-transparent">
-                 Department<span style={{ color: 'red' }}> * </span></label>
+             {/* Department<span style={{ color: 'red' }}> * </span></label> */}
+                 Department ::: {bookData.department.id}<span style={{ color: 'red' }}> * </span></label>
               <select name="department"
               id="department"
               onChange={this.onChange}
               value={bookData.department.id}
+              // value={booklistObj.department.id}
               className="fwidth"
               style={{ width: '250px' }}>
                 {/* {this.createDepartment(createLibraryFilterDataCache.departments)} */}

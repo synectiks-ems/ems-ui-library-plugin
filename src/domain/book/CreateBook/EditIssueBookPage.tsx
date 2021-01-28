@@ -6,7 +6,7 @@ import '../../../css/college-settings.css';
 import '../../../css/tabs.css'; 
 import {MessageBox} from '../../Message/MessageBox'
 import { withApollo } from 'react-apollo';
-import { ADD_ISSUE_BOOK, CREATE_LIBRARY_FILTER_DATA_CACHE } from '../_queries';
+import { ADD_ISSUE_BOOK, CREATE_LIBRARY_FILTER_DATA_CACHE, GET_ISSUE_BOOK_LIST } from '../_queries';
 import * as moment from 'moment';
 import wsCmsBackendServiceSingletonClient from '../../../wsCmsBackendServiceClient';
 
@@ -34,6 +34,38 @@ const SUCCESS_MESSAGE_BOOK_UPDATED = "IssueBook updated successfully";
 const ERROR_MESSAGE_DATES_OVERLAP = "Due Date cannot be prior or same as Issue date";
 const ERROR_MESSAGE_DATE_OVERLAP = "Received Date cannot be prior to Issue date";
 
+class IssueBookObj {
+  id: any;
+  issueDate: any;
+  dueDate: any;
+  receivedDate: any;
+  bookStatus: any;
+  rollNo: any;
+  studentName: any;
+  noOfCopies: any;
+  noOfCopiesAvailable: any;
+  department: any;
+  batch: any;
+  bookTitle: any;
+
+ constructor(id: any, issueDate: any, dueDate: any, receivedDate: any, 
+            bookStatus: any, rollNo: any, studentName: any, 
+            noOfCopies: any, noOfCopiesAvailable: any, department: any,
+            batch: any, bookTitle: any) {
+  this.id = id;
+  this.issueDate = issueDate;
+  this.dueDate = dueDate;
+  this.receivedDate = receivedDate;
+  this.bookStatus = bookStatus;
+  this.rollNo = rollNo;
+  this.studentName = studentName;
+  this.noOfCopies = noOfCopies;
+  this.noOfCopiesAvailable = noOfCopiesAvailable;
+  this.department = department;
+  this.batch = batch;
+  this.bookTitle = bookTitle;
+ }
+ }
 class IssueBookGrid<T = {[data: string]: any}> extends React.Component<IssueBookProps, any> {
     constructor(props: IssueBookProps) {
         super(props);
@@ -96,18 +128,45 @@ class IssueBookGrid<T = {[data: string]: any}> extends React.Component<IssueBook
         this.getcreateLibraryFilterDataCache = this.getcreateLibraryFilterDataCache.bind(this);
         }
     
-        async componentDidMount(){
-         this.setState({
-         ibObj: this.props.data,
-         });
+      //   async componentDidMount(){
+      //    this.setState({
+      //    ibObj: this.props.data,
+      //    });
 
-        await this.registerSocket();
-        // console.log('check batches:', this.props.batches);
-         console.log('1.test ibObj data:', this.state.ibObj);
-         console.log('30. test issueBookObj data state:', this.state.issueBookObj);
-         console.log('40. test issueBookObj data props:', this.props.issueBookObj);
-        this.editInputValue();
-       }
+      //   await this.registerSocket();
+      //   // console.log('check batches:', this.props.batches);
+      //    console.log('1.test ibObj data:', this.state.ibObj);
+      //    console.log('30. test issueBookObj data state:', this.state.issueBookObj);
+      //    console.log('40. test issueBookObj data props:', this.props.issueBookObj);
+      //   this.editInputValue();
+      //  }
+      getBook = async () => {
+        const { data } = await this.props.client.query({
+            query: GET_ISSUE_BOOK_LIST,
+            fetchPolicy: 'no-cache'
+        })
+        var arr = data.getIssueBookList;
+        let i;
+        let finalAry = [];
+        for (i in arr) {
+          let obj = new IssueBookObj(arr[i].id, arr[i].issueDate, 
+                                    arr[i].dueDate, arr[i].receivedDate, 
+                                    arr[i].bookStatus, arr[i].student.rollNo, 
+                                    arr[i].student.studentName, 
+                                    arr[i].book.noOfCopies, 
+                                    arr[i].book.noOfCopiesAvailable, 
+                                    arr[i].department.name, 
+                                    arr[i].batch.batch, 
+                                    arr[i].book.bookTitle);
+          finalAry.push(obj);
+        }
+        console.log("Final Array : ", finalAry);
+        this.setState({
+            issueBookList: finalAry,
+        });
+    
+        console.log(" state variable IssueBook data :::", this.state.issueBookList);
+    }
 
     async registerSocket() {
         const socket = wsCmsBackendServiceSingletonClient.getInstance();
@@ -326,8 +385,20 @@ class IssueBookGrid<T = {[data: string]: any}> extends React.Component<IssueBook
             exitCode = resp.data.addIssueBook.cmsIssueBookVo.exitCode;
             let temp = resp.data.addIssueBook.cmsIssueBookVo.dataList; 
             console.log("New Issue Book list : ", temp);
+            let i;
+            let obj;
+           let ary = [];
+           for (i in temp) {
+            obj = new IssueBookObj(temp[i].id, temp[i].issueDate, 
+                                  temp[i].dueDate, temp[i].receivedDate, 
+                                  temp[i].bookStatus, temp[i].student.rollNo, 
+                                  temp[i].student.studentName, temp[i].book.noOfCopies, 
+                                  temp[i].book.noOfCopiesAvailable, temp[i].department.name, 
+                                  temp[i].batch.batch, temp[i].book.bookTitle);
+            ary.push(obj);
+           }
             this.setState({
-                issueBookList: temp  
+                issueBookList: ary  
             });
         })
         .catch((error: any) => {
@@ -480,9 +551,9 @@ class IssueBookGrid<T = {[data: string]: any}> extends React.Component<IssueBook
         issueBookListObj: {
             ...issueBookListObj,
              id: ibValue.id,
-             batchId:ibValue.batchId,
-             studentId:ibValue.studentId,
-             bookId:ibValue.bookId,
+             batchId: ibValue.batchId,
+             studentId: ibValue.studentId,
+             bookId: ibValue.bookId,
              departmentId: ibValue.departmentId,
              branchId: branchId,
              bookStatus: ibValue.bookStatus,
@@ -525,21 +596,25 @@ class IssueBookGrid<T = {[data: string]: any}> extends React.Component<IssueBook
       issueBookListObj.id !== null || issueBookListObj.id !== undefined || issueBookListObj.id !== ''
         ? issueBookListObj.id
         : null,
-      batchId:issueBookData.batch.id,
-      studentId:issueBookData.student.id,
-      bookId:issueBookData.book.id,
+      // batchId: issueBookListObj.batchId,
+      // studentId: issueBookListObj.studentId,
+      // bookId: issueBookListObj.bookId,
+      batchId: issueBookData.batch.id,
+      studentId: issueBookData.student.id,
+      bookId: issueBookData.book.id,
       branchId: branchId,
       bookStatus: issueBookListObj.bookStatus,
       strIssueDate: moment(issueBookListObj.issueDate).format("DD-MM-YYYY"),
       strDueDate: moment(issueBookListObj.dueDate).format("DD-MM-YYYY"),
       strReceivedDate: moment(issueBookListObj.receivedDate).format("DD-MM-YYYY"),  
-        departmentId: issueBookData.department.id,
+        // departmentId: issueBookListObj.departmentId,
+      departmentId: issueBookData.department.id,
     };
     return issueBookInput;
 }
     
 render() {
-const {isModalOpen, bList, activeTab,issueBookData, issueBookListObj,createLibraryDataCache, errorMessage, successMessage,departmentId} = this.state;
+const {isModalOpen, bList, batchId, activeTab,issueBookData, issueBookListObj,createLibraryDataCache, errorMessage, successMessage,departmentId, studentId} = this.state;
 return (
     <section className="plugin-bg-white p-1">
        {
@@ -563,12 +638,13 @@ return (
         <div id="feeCategoryDiv" className="b-1">
        <div className="form-grid">
        <div>
-          <label htmlFor="">
-              Department<span style={{ color: 'red' }}> * </span></label>
+          <label className="gf-form-label b-0 bg-transparent">
+          Department ::: {issueBookListObj.departmentId}<span style={{ color: 'red' }}> * </span></label>
+
              <select required name="department" 
              id="department" 
              onChange={this.onChange}  
-             value={issueBookData.department.id} 
+             value={issueBookListObj.departmentId} 
              className="gf-form-input fwidth"
              style={{ width: '255px' }}>
                {/* {this.createDepartment(createLibraryDataCache.departments)} */}
@@ -584,12 +660,14 @@ return (
              </select>
            </div>
            <div>
-          <label htmlFor="">
-              Batch<span style={{ color: 'red' }}> * </span></label>
+          <label className="gf-form-label b-0 bg-transparent">
+              {/* Batch<span style={{ color: 'red' }}> * </span></label> */}
+              Batch ::: {issueBookListObj.batchId}<span style={{ color: 'red' }}> * </span></label>
+
              <select required name="batch" 
              id="batch" 
              onChange={this.onChange}  
-             value={issueBookData.batch.id} 
+             value={issueBookListObj.batchId} 
              className="gf-form-input fwidth"
              style={{ width: '255px' }}>
                {/* {this.createDepartment(createLibraryDataCache.departments)} */}
@@ -605,12 +683,13 @@ return (
              </select>
            </div>
            <div>
-          <label htmlFor="">
-              Student<span style={{ color: 'red' }}> * </span></label>
+          <label className="gf-form-label b-0 bg-transparent">
+              Student ::: {issueBookListObj.studentId}<span style={{ color: 'red' }}> * </span></label>
+
              <select required name="student" 
              id="student" 
              onChange={this.onChange}  
-             value={issueBookData.student.id} 
+             value={issueBookListObj.studentId} 
              className="gf-form-input fwidth"
              style={{ width: '255px' }}>
                {/* {this.createDepartment(createLibraryDataCache.departments)} */}
@@ -626,12 +705,12 @@ return (
              </select>
            </div>
            <div>
-          <label htmlFor="">
-              Book<span style={{ color: 'red' }}> * </span></label>
+          <label className="gf-form-label b-0 bg-transparent">
+          Book ::: {issueBookListObj.bookId}<span style={{ color: 'red' }}> * </span></label>
              <select required name="book" 
              id="book" 
              onChange={this.onChange}  
-             value={issueBookData.book.id} 
+             value={issueBookListObj.bookId} 
              className="gf-form-input fwidth"
              style={{ width: '255px' }}>
                {/* {this.createDepartment(createLibraryDataCache.departments)} */}

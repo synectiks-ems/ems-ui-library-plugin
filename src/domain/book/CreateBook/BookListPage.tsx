@@ -1,21 +1,23 @@
 import * as React from 'react';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
-import {NavItem,NavLink, TabPane, TabContent} from 'reactstrap';
+import { NavItem, NavLink, TabPane, TabContent } from 'reactstrap';
 import { graphql, QueryProps, MutationFunc, compose, withApollo } from "react-apollo";
-import {GET_BOOK_LIST,CREATE_LIBRARY_FILTER_DATA_CACHE} from '../_queries';
+import { GET_BOOK_LIST, CREATE_LIBRARY_FILTER_DATA_CACHE, BOOK_LIST } from '../_queries';
 import withLoadingHandler from '../withLoadingHandler';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import wsCmsBackendServiceSingletonClient from '../../../wsCmsBackendServiceClient';
 import BookDetails from './BooksDetails';
 import EditBook from './EditBook';
+import Table from '../../../css/table';
+
 
 const w180 = {
-    width: '180px',
-    marginBottom: '5px'
+  width: '180px',
+  marginBottom: '5px'
 };
 
 type BookTableStates = {
-  user:any,
+  user: any,
   books: any,
   bookData: any,
   departments: any,
@@ -29,15 +31,38 @@ type BookTableStates = {
   departmentId: any,
 };
 
+class BookObj {
+  id: any;
+  shelfNumber: any;
+  bookTitle: any;
+  author: any;
+  edition: any;
+  publisher: any;
+  isbNo: any;
+  noOfCopies: any;
+  noOfCopiesAvailable: any;
+  name: any;
 
-export interface BookListProps extends React.HTMLAttributes<HTMLElement> {
-    [data: string]: any;
-    user?: any;
-    createLibraryDataCache?: any;
+  constructor(id: any, shelfNumber: any, bookTitle: any, author: any, edition: any, publisher: any, isbNo: any, noOfCopies: any, noOfCopiesAvailable: any, name: any) {
+    this.id = id;
+    this.shelfNumber = shelfNumber;
+    this.bookTitle = bookTitle;
+    this.author = author;
+    this.edition = edition;
+    this.publisher = publisher;
+    this.isbNo = isbNo;
+    this.noOfCopies = noOfCopies;
+    this.noOfCopiesAvailable = noOfCopiesAvailable;
+    this.name = name;
   }
-
-class BookTable<T = {[data: string]: any}> extends React.Component<BookListProps, BookTableStates> {
-  constructor(props: any) {
+}
+export interface BookListProps extends React.HTMLAttributes<HTMLElement> {
+  [data: string]: any;
+  user?: any;
+  createLibraryDataCache?: any;
+}
+class BookTable<T = { [data: string]: any }> extends React.Component<BookListProps, any> {
+  constructor(props: BookListProps) {
     super(props);
     const params = new URLSearchParams(location.search);
     this.state = {
@@ -49,8 +74,9 @@ class BookTable<T = {[data: string]: any}> extends React.Component<BookListProps
       academicYearId: null,
       departmentId: null,
       books: {},
+      bookDataList: [],
       bookData: {
-       department: {
+        department: {
           id: '',
         },
         book: {
@@ -59,16 +85,95 @@ class BookTable<T = {[data: string]: any}> extends React.Component<BookListProps
         mutateResult: [],
         search: ""
       },
-      departments:"",
+      departments: "",
       pageSize: 5,
-      search: ''
-
+      search: '',
+      columns: [
+        {
+          label: "Book Id",
+          key: 'id',
+          // isCaseInsensitive: true,
+        },
+        {
+          label: "Shelf Number",
+          key: 'shelfNumber',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "Book Title",
+          key: 'bookTitle',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "Author",
+          key: 'author',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "Edition",
+          key: 'edition',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "Publisher",
+          key: 'publisher',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "ISB NUMBER",
+          key: 'isbNo',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "NoOfCopies",
+          key: 'noOfCopies',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "CopiesAvailable",
+          key: 'noOfCopiesAvailable',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: "Department",
+          key: 'name',
+          // isCaseInsensitive: false,
+        },
+        {
+          label: 'Edit',
+          key: 'action',
+          renderCallback: (value: any, obj: any) => {
+            return <td>
+              <div className="d-inline-block">
+                <button className="btn btn-primary" onClick={(e: any) => this.editDetails(obj, e)}>
+                  {' '} Edit Book {' '}
+                </button>
+              </div>
+            </td>
+          },
+          isCaseInsensitive: true
+        },
+        {
+          label: 'Details',
+          key: 'action',
+          renderCallback: (value: any, obj: any) => {
+            return <td>
+              <div className="d-inline-block">
+                <button className="btn btn-primary" onClick={(e: any) => this.showDetail(obj, e)}>
+                  {' '} Details {' '}
+                </button>
+              </div>
+            </td>
+          },
+          isCaseInsensitive: true
+        }
+      ],
     };
     this.createBook = this.createBook.bind(this);
     this.createDepartment = this.createDepartment.bind(this);
     this.checkAllBooks = this.checkAllBooks.bind(this);
     this.onClickCheckbox = this.onClickCheckbox.bind(this);
-    this.createBookRows = this.createBookRows.bind(this);
+    // this.createBookRows = this.createBookRows.bind(this);
     this.showDetail = this.showDetail.bind(this);
     this.SetObject = this.SetObject.bind(this);
     this.createNoRecordMessage = this.createNoRecordMessage.bind(this);
@@ -80,21 +185,87 @@ class BookTable<T = {[data: string]: any}> extends React.Component<BookListProps
     await this.setState({
       activeTab: tabNo,
     });
-  } 
-  async componentDidMount(){
-    await this.registerSocket();
-    console.log(
-      '5. check create catch departments:',
-      this.state.createLibraryDataCache.departments
-    );
   }
-  
+  // async componentDidMount(){
+  //   await this.registerSocket();
+  //   console.log(
+  //     '5. check create catch departments:',
+  //     this.state.createLibraryDataCache.departments
+  //   );
+  // }
 
+  async componentDidMount() {
+    console.log("component Did ram")
+    const { data } = await this.props.client.query({
+      query: BOOK_LIST,
+      fetchPolicy: 'no-cache'
+    })
+
+    const temp = data.getBookList;
+    console.log("final Data : ", temp)
+    let i;
+    let ary = [];
+    let obj;
+    for (i in temp) {
+      obj = new BookObj(
+        temp[i].id, 
+        temp[i].shelfNo, 
+        temp[i].bookTitle, 
+        temp[i].author, 
+        temp[i].edition, 
+        temp[i].publisher, 
+        temp[i].isbNo, 
+        temp[i].noOfCopies, 
+        temp[i].noOfCopiesAvailable, 
+        temp[i].department.name);
+      ary.push(obj);
+    }
+    console.log("final Data ", ary)
+    this.setState({
+      bookDataList: ary
+    });
+
+    // await this.props.client
+    //   .mutate({
+    //     mutation: GET_BOOK_LIST
+    //   })
+    //   .then((data: any) => {
+    //   console.log("Data result ram: ",data);     
+
+    // }).catch((error: any) => {
+    //   console.log('there was an error sending the query result', error);
+    //   return Promise.reject(`Could not retrieve book data: ${error}`);
+    // });
+
+    await this.getBook();
+  }
+  getBook = async () => {
+    const { data } = await this.props.client.query({
+      query: GET_BOOK_LIST,
+      fetchPolicy: 'no-cache'
+    })
+    var arr = data.getBookList;
+    let i;
+    let finalAry = [];
+    for (i in arr) {
+      let obj = new BookObj(arr[i].id, arr[i].shelfNumber, 
+        arr[i].bookTitle, arr[i].author, arr[i].edition, 
+        arr[i].publisher, arr[i].isbNo, arr[i].noOfCopies, 
+        arr[i].noOfCopiesAvailable, arr[i].department.name);
+      finalAry.push(obj);
+    }
+    console.log("Final Array : ", finalAry);
+    this.setState({
+      bookList: finalAry,
+    });
+
+    console.log(" state variable Book data :::", this.state.bookList);
+  }
   async registerSocket() {
     const socket = wsCmsBackendServiceSingletonClient.getInstance();
-}
-async getcreateLibraryFilterDataCache() {
-    const {data} = await this.props.client.query({
+  }
+  async getcreateLibraryFilterDataCache() {
+    const { data } = await this.props.client.query({
       query: CREATE_LIBRARY_FILTER_DATA_CACHE,
       variables: {
       },
@@ -113,7 +284,7 @@ async getcreateLibraryFilterDataCache() {
       </option>,
     ];
     for (let i = 0; i < departments.length; i++) {
-        departmentsOptions.push(
+      departmentsOptions.push(
         <option key={departments[i].id} value={departments[i].id}>
           {departments[i].id}
         </option>
@@ -128,7 +299,7 @@ async getcreateLibraryFilterDataCache() {
       </option>,
     ];
     for (let i = 0; i < books.length; i++) {
-        booksOptions.push(
+      booksOptions.push(
         <option key={books[i].id} value={books[i].id}>
           {books[i].id}
         </option>
@@ -150,13 +321,13 @@ async getcreateLibraryFilterDataCache() {
       }
     });
   }
-  
+
   onClickCheckbox(index: any, e: any) {
     const { id } = e.nativeEvent.target;
     let chkBox: any = document.querySelector('#' + id);
     chkBox.checked = e.nativeEvent.target.checked;
   }
-  
+
 
   createNoRecordMessage(objAry: any) {
     const mutateResLength = objAry.length;
@@ -173,122 +344,122 @@ async getcreateLibraryFilterDataCache() {
     }
     return retVal;
   }
-  
-  createBookRows(objAry: any) {
-    let { search } = this.state.bookData;
-    search = search.trim();
-    const mutateResLength = objAry.length;
-    const retVal = [];
-    for (let x = 0; x < mutateResLength; x++) {
-      const tempObj = objAry[x];
-      const books = tempObj.data.getBookList;
-      const length = books.length;
-      for (let i = 0; i < length; i++) {
-        const book = books[i];
-        if(search){
-          if(book.bookTitle.indexOf(search) !== -1){
-            retVal.push(
-              <tr key={book.id}>
-                <td>
-                  <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
-                  checked={book.isChecked} 
-                  type="checkbox" 
-                  name="chk" 
-                  id={"chk" + book.id} />
-                </td>
-                <td>
-                    {book.id}</td>
-                {/* <td> */}
-                {/* <a onClick={(e: any) => this.showDetail(book, e)}
-                  style={{color: '#307dc2'}}>
-                  {book.bookNo}
-                </a> */}
-                {/* {book.bookNo}
-              </td> */}
-                <td>{book.shelfNo}</td>
-                <td>{book.bookTitle}</td>
-                <td>{book.author}</td>
-                <td>{book.edition}</td>
-                <td>{book.publisher}</td>
-                <td>{book.isbNo}</td>
-                <td>{book.noOfCopies}</td>
-                <td>{book.noOfCopiesAvailable}</td>
-                <td>{book.department.name}</td>
-                <td>
-                    
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetails(book, e)}>
-                            {' '}
-                            Edit Book{' '}
-                        </button>
-                    
-                </td>
-                <td>
-                    
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetail(book, e)}>
-                            {' '}
-                            Details{' '}
-                            </button> 
-                </td>
-              </tr>
-            );
-            console.log('print book obj:', book);
-          }
-        } else{
-          retVal.push(
-            <tr key={book.id}>
-              <td>
-                <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
-                checked={book.isChecked} 
-                type="checkbox" 
-                name="chk" 
-                id={"chk" + book.id} />
-              </td>
-              <td>{book.id}</td>
-              {/* <td> */}
-              {/* <a onClick={(e: any) => this.showDetail(book, e)}
-              style={{color: '#307dc2'}}>
-                  {book.bookNo}
-                </a> */}
-                {/* {book.bookNo}
-               </td> */}
-                <td>{book.shelfNo}</td>
-                <td>{book.bookTitle}</td>
-                <td>{book.author}</td>
-                <td>{book.edition}</td>
-                <td>{book.publisher}</td>
-                <td>{book.isbNo}</td>
-                <td>{book.noOfCopies}</td>
-                <td>{book.noOfCopiesAvailable}</td>
-                <td>{book.department.name}</td>
-                <td>
-                    
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetails(book, e)}>
-                            {' '}
-                            Edit Book{' '}
-                            </button>
-                    
-                </td>
-                <td>
-                    
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetail(book, e)}>
-                            {' '}
-                            Details{' '}
-                            </button>
-                    
-                </td>
-            </tr>
-          );
-          console.log('print book obj:', book);
-        }
-      }
-    }
 
-    return retVal;
-  }
+  // createBookRows(objAry: any) {
+  //   let { search } = this.state.bookData;
+  //   search = search.trim();
+  //   const mutateResLength = objAry.length;
+  //   const retVal = [];
+  //   for (let x = 0; x < mutateResLength; x++) {
+  //     const tempObj = objAry[x];
+  //     const books = tempObj.data.getBookList;
+  //     const length = books.length;
+  //     for (let i = 0; i < length; i++) {
+  //       const book = books[i];
+  //       if(search){
+  //         if(book.bookTitle.indexOf(search) !== -1){
+  //           retVal.push(
+  //             <tr key={book.id}>
+  //               <td>
+  //                 <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
+  //                 checked={book.isChecked} 
+  //                 type="checkbox" 
+  //                 name="chk" 
+  //                 id={"chk" + book.id} />
+  //               </td>
+  //               <td>
+  //                   {book.id}</td>
+  //               {/* <td> */}
+  //               {/* <a onClick={(e: any) => this.showDetail(book, e)}
+  //                 style={{color: '#307dc2'}}>
+  //                 {book.bookNo}
+  //               </a> */}
+  //               {/* {book.bookNo}
+  //             </td> */}
+  //               <td>{book.shelfNo}</td>
+  //               <td>{book.bookTitle}</td>
+  //               <td>{book.author}</td>
+  //               <td>{book.edition}</td>
+  //               <td>{book.publisher}</td>
+  //               <td>{book.isbNo}</td>
+  //               <td>{book.noOfCopies}</td>
+  //               <td>{book.noOfCopiesAvailable}</td>
+  //               <td>{book.department.name}</td>
+  //               <td>
+
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetails(book, e)}>
+  //                           {' '}
+  //                           Edit Book{' '}
+  //                       </button>
+
+  //               </td>
+  //               <td>
+
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetail(book, e)}>
+  //                           {' '}
+  //                           Details{' '}
+  //                           </button> 
+  //               </td>
+  //             </tr>
+  //           );
+  //           console.log('print book obj:', book);
+  //         }
+  //       } else{
+  //         retVal.push(
+  //           <tr key={book.id}>
+  //             <td>
+  //               <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
+  //               checked={book.isChecked} 
+  //               type="checkbox" 
+  //               name="chk" 
+  //               id={"chk" + book.id} />
+  //             </td>
+  //             <td>{book.id}</td>
+  //             {/* <td> */}
+  //             {/* <a onClick={(e: any) => this.showDetail(book, e)}
+  //             style={{color: '#307dc2'}}>
+  //                 {book.bookNo}
+  //               </a> */}
+  //               {/* {book.bookNo}
+  //              </td> */}
+  //               <td>{book.shelfNo}</td>
+  //               <td>{book.bookTitle}</td>
+  //               <td>{book.author}</td>
+  //               <td>{book.edition}</td>
+  //               <td>{book.publisher}</td>
+  //               <td>{book.isbNo}</td>
+  //               <td>{book.noOfCopies}</td>
+  //               <td>{book.noOfCopiesAvailable}</td>
+  //               <td>{book.department.name}</td>
+  //               <td>
+
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetails(book, e)}>
+  //                           {' '}
+  //                           Edit Book{' '}
+  //                           </button>
+
+  //               </td>
+  //               <td>
+
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetail(book, e)}>
+  //                           {' '}
+  //                           Details{' '}
+  //                           </button>
+
+  //               </td>
+  //           </tr>
+  //         );
+  //         console.log('print book obj:', book);
+  //       }
+  //     }
+  //   }
+
+  //   return retVal;
+  // }
 
   onChange = (e: any) => {
     const { search } = e.nativeEvent.target;
@@ -301,8 +472,8 @@ async getcreateLibraryFilterDataCache() {
           book: {
             id: value
           },
-          department:{
-            id:""
+          department: {
+            id: ""
           }
         }
       });
@@ -315,7 +486,7 @@ async getcreateLibraryFilterDataCache() {
           },
         }
       });
-    } 
+    }
     else {
       this.setState({
         bookData: {
@@ -325,14 +496,21 @@ async getcreateLibraryFilterDataCache() {
       });
     }
   };
- 
-  async showDetails(obj: any, e: any) {
+
+  // async showDetails(e: any, e: any) {
+  //   // await this.SetObject(obj);
+  //   // console.log('3. data in bookobj:', this.state.bookobj);
+  //   // await this.toggleTab(1);
+  // }
+  async editDetails(obj: any, e: any) {
+    console.log("Edit Obj :: ",obj);
     await this.SetObject(obj);
     console.log('3. data in bookobj:', this.state.bookobj);
     await this.toggleTab(1);
   }
 
   async showDetail(obj: any, e: any) {
+    console.log("Edit Obj :: ",obj);
     await this.SetObject(obj);
     console.log('3. data in bookobj:', this.state.bookobj);
     await this.toggleTab(0);
@@ -345,6 +523,7 @@ async getcreateLibraryFilterDataCache() {
     });
     console.log('2. data in obj:', obj);
   }
+
 
   onClick = (e: any) => {
     const { name, value } = e.nativeEvent.target;
@@ -363,70 +542,70 @@ async getcreateLibraryFilterDataCache() {
         },
       })
       .then((data: any) => {
-      const ldt = data;
-      bookData.mutateResult = [];
-      bookData.mutateResult.push(ldt);
-      this.setState({
-        bookData: bookData
+        const ldt = data;
+        bookData.mutateResult = [];
+        bookData.mutateResult.push(ldt);
+        this.setState({
+          bookData: bookData
+        });
+        console.log('Book filter mutation result ::::: ', bookData.mutateResult);
+      }).catch((error: any) => {
+        console.log('there was an error sending the query result', error);
+        return Promise.reject(`Could not retrieve book data: ${error}`);
       });
-      console.log('Book filter mutation result ::::: ', bookData.mutateResult);
-    }).catch((error: any) => {
-      console.log('there was an error sending the query result', error);
-      return Promise.reject(`Could not retrieve book data: ${error}`);
-    });
   }
 
-// editBook(obj: any){
-//   const { bookObj } = this.state;
-//       let txtSn: any = document.querySelector("#shelfNumber");
-//       let txtBt: any = document.querySelector("#bookTitle");
-//       let txtAu: any = document.querySelector("#author");
-//       let txtPb: any = document.querySelector("#publisher");
-//       let txtEd: any = document.querySelector("#edition");
-//       let txtNc: any = document.querySelector("#noOfCopies");
-//       let txtIn: any = document.querySelector("#isbNo");
-      
-//       txtSn.value = obj.shelfNumber;
-//       txtBt.value = obj.bookTitle;
-//       txtAu.value = obj.author;
-//       txtPb.value = obj.publisher;
-//       txtEd.value = obj.edition;
-//       txtNc.value = obj.noOfCopies;
-//       txtIn.value = obj.isbNo;
-  
-//       bookObj.id = obj.id;
-//       bookObj.shelfNumber = obj.shelfNumber;
-//       bookObj.bookTitle = obj.bookTitle;
-//       bookObj.author = obj.author;
-//       bookObj.publisher = obj.publisher;
-//       bookObj.edition = obj.edition;
-//       bookObj.noOfCopies = obj.noOfCopies;
-//       bookObj.isbNo = obj.isbNo;
-  
-//       this.setState({
-        
-//         bookObj: bookObj
-//       });
-// }
-  
+  // editBook(obj: any){
+  //   const { bookObj } = this.state;
+  //       let txtSn: any = document.querySelector("#shelfNumber");
+  //       let txtBt: any = document.querySelector("#bookTitle");
+  //       let txtAu: any = document.querySelector("#author");
+  //       let txtPb: any = document.querySelector("#publisher");
+  //       let txtEd: any = document.querySelector("#edition");
+  //       let txtNc: any = document.querySelector("#noOfCopies");
+  //       let txtIn: any = document.querySelector("#isbNo");
+
+  //       txtSn.value = obj.shelfNumber;
+  //       txtBt.value = obj.bookTitle;
+  //       txtAu.value = obj.author;
+  //       txtPb.value = obj.publisher;
+  //       txtEd.value = obj.edition;
+  //       txtNc.value = obj.noOfCopies;
+  //       txtIn.value = obj.isbNo;
+
+  //       bookObj.id = obj.id;
+  //       bookObj.shelfNumber = obj.shelfNumber;
+  //       bookObj.bookTitle = obj.bookTitle;
+  //       bookObj.author = obj.author;
+  //       bookObj.publisher = obj.publisher;
+  //       bookObj.edition = obj.edition;
+  //       bookObj.noOfCopies = obj.noOfCopies;
+  //       bookObj.isbNo = obj.isbNo;
+
+  //       this.setState({
+
+  //         bookObj: bookObj
+  //       });
+  // }
+
 
 
   render() {
-    const { createLibraryDataCache, departmentId, bookData, activeTab, user,  } = this.state;
-  
+    const { createLibraryDataCache, departmentId, bookData, activeTab, user, bookDataList } = this.state;
+
     return (
       <section className="customCss">
-         <TabContent activeTab={activeTab}>
+        <TabContent activeTab={activeTab}>
           <TabPane tabId={2}>
-        <div className="container-fluid" style={{padding: '0px'}}>
-          <div className="m-b-1 bg-heading-bgStudent studentListFlex">
-            <div className="">
-              <h4 className="ptl-06">Book Details</h4>
-            </div>
-          </div>
-          <div>
-            <div className="student-flex">
-            <div>
+            <div className="container-fluid" style={{ padding: '0px' }}>
+              <div className="m-b-1 bg-heading-bgStudent studentListFlex">
+                <div className="">
+                  <h4 className="ptl-06">Book Details</h4>
+                </div>
+              </div>
+              <div>
+                <div className="student-flex">
+                  {/* <div>
                 <label htmlFor="">Book</label>
                 <select
                   required
@@ -445,8 +624,8 @@ async getcreateLibraryFilterDataCache() {
                       )
                     : null}
                 </select>
-              </div>
-              {/* <div>
+              </div> */}
+                  {/* <div>
                 <label htmlFor="">Department</label>
                 <select
                   required
@@ -466,11 +645,11 @@ async getcreateLibraryFilterDataCache() {
                     : null}
                 </select>
               </div> */}
-              <div className="margin-bott max-width-22">
+                  {/* <div className="margin-bott max-width-22">
                 <label htmlFor="">Book Title</label>
                 <input type="text" name="search" value={bookData.search} onChange={this.onChange} />
-              </div>
-              <div id="srch" className="margin-bott">
+              </div> */}
+                  {/* <div id="srch" className="margin-bott">
                     <label htmlFor="">Search</label>
                     <input
                       type="text"
@@ -479,20 +658,20 @@ async getcreateLibraryFilterDataCache() {
                       value={bookData.search}
                       onChange={this.onChange}
                     />
-                  </div>
-            <div className="m-b-1 bg-heading-bg studentSearch">
-              {/* <h4 className="ptl-06"></h4> */}
-              <button 
+                  </div> */}
+                  {/* <div className="m-b-1 bg-heading-bg studentSearch"> */}
+                  {/* <h4 className="ptl-06"></h4> */}
+                  {/* <button 
               className="btn btn-primary max-width-13" 
               id="btnFind" 
               name="btnFind" 
               onClick={this.onClick} 
               style={w180}>
                   Search Books
-            </button>
-            </div>
-            </div>
-            <table id="Librarylistpage" className="striped-table fwidth bg-white">
+            </button> */}
+                  {/* </div> */}
+                </div>
+                {/* <table id="Librarylistpage" className="striped-table fwidth bg-white">
               <thead>
                 <tr>
                   <th>
@@ -521,22 +700,24 @@ async getcreateLibraryFilterDataCache() {
                   this.createBookRows(this.state.bookData.mutateResult)
                 }
               </tbody>
-            </table>
-            {
-              this.createNoRecordMessage(this.state.bookData.mutateResult)
-            }
-          </div>
-        </div>
-        </TabPane>
-        <TabPane tabId={0}>
-            <div className="container-fluid" style={{padding: '0px'}}>
+            </table> */}
+                <Table valueFromData={{ columns: this.state.columns, data: bookDataList }} perPageLimit={6} visiblecheckboxStatus={true} tableClasses={{ table: "alert-data-tabel", tableParent: "alerts-data-tabel", parentClass: "all-alert-data-table" }} searchKey="name" showingLine="Showing %start% to %end% of %total%" />
+
+                {
+                  this.createNoRecordMessage(this.state.bookData.mutateResult)
+                }
+              </div>
+            </div>
+          </TabPane>
+          <TabPane tabId={0}>
+            <div className="container-fluid" style={{ padding: '0px' }}>
               <div className="m-b-1 bg-heading-bgStudent studentListFlex p-point5">
                 <div className="">
                   <h4 className="ptl-06">Book Details</h4>
                 </div>
                 <div className="">
                   <a
-                     className="btn btn-primary m-l-1  pull-right"
+                    className="btn btn-primary m-l-1  pull-right"
                     onClick={() => {
                       this.toggleTab(2);
                     }}
@@ -553,14 +734,14 @@ async getcreateLibraryFilterDataCache() {
                   </a>
                 </div>
               </div>
-              {this.state.bookobj !== null && 
-              this.state.bookobj !== undefined && (
-                <BookDetails data={this.state.bookobj} />
-              )}
+              {this.state.bookobj !== null &&
+                this.state.bookobj !== undefined && (
+                  <BookDetails data={this.state.bookobj} />
+                )}
             </div>
           </TabPane>
           <TabPane tabId={1}>
-            <div className="container-fluid" style={{padding: '0px'}}>
+            <div className="container-fluid" style={{ padding: '0px' }}>
               <div className="m-b-1 bg-heading-bgStudent studentListFlex p-point5">
                 <div className="">
                   <h4 className="ptl-06">Edit Book </h4>
@@ -591,7 +772,7 @@ async getcreateLibraryFilterDataCache() {
                     user={user}
                     data={this.state.bookobj}
                     bookobj={this.state.bookobj}
-                    departments={this.state.createLibraryDataCache.departments}/>
+                    departments={this.state.createLibraryDataCache.departments} />
                 )}
             </div>
           </TabPane>

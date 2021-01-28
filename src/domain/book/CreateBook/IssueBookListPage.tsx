@@ -2,13 +2,15 @@ import * as React from 'react';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import {NavItem,NavLink, TabPane, TabContent} from 'reactstrap';
 import { graphql, QueryProps, MutationFunc, compose, withApollo } from "react-apollo";
-import {GET_ISSUE_BOOK_LIST,CREATE_LIBRARY_FILTER_DATA_CACHE} from '../_queries';
+import {GET_ISSUE_BOOK_LIST, CREATE_LIBRARY_FILTER_DATA_CACHE, ISSUE_BOOK_LIST} from '../_queries';
 import withLoadingHandler from '../withLoadingHandler';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import wsCmsBackendServiceSingletonClient from '../../../wsCmsBackendServiceClient';
 import IssueBookDetails from './IssueBookDetails';
 import EditBook from './EditBook';
 import EditIssueBookPage from './EditIssueBookPage';
+import Table from '../../../css/table';
+
 
 const w180 = {
     width: '180px',
@@ -28,17 +30,44 @@ type IssueBookTableStates = {
   branchId: any,
   academicYearId: any,
   departmentId: any,
+  batchId: any,
+  studentId: any,
+  bookId: any,
 };
 
+class IssueBookObj {
+  id: any;
+  strIssueDate: any;
+  strDueDate: any;
+  bookStatus: any;
+  rollNo: any;
+  studentName: any;
+  noOfCopies: any;
+  noOfCopiesAvailable: any;
+  name: any;
+  batch: any;
 
+ constructor(id: any, strIssueDate: any, strDueDate: any, bookStatus: any, rollNo: any, studentName: any, noOfCopies: any, noOfCopiesAvailable: any, name: any, batch: any ) {
+  this.id = id;
+  this.strIssueDate = strIssueDate;
+  this.strDueDate = strDueDate;
+  this.bookStatus = bookStatus;
+  this.rollNo = rollNo;
+  this.studentName = studentName;
+  this.noOfCopies = noOfCopies;
+  this.noOfCopiesAvailable = noOfCopiesAvailable;
+  this.name = name;
+  this.batch = batch;
+ }
+ }
 export interface IssueBookListProps extends React.HTMLAttributes<HTMLElement> {
     [data: string]: any;
     user?: any;
     createLibraryDataCache?: any;
   }
 
-class IssueBookTable<T = {[data: string]: any}> extends React.Component<IssueBookListProps, IssueBookTableStates> {
-  constructor(props: any) {
+class IssueBookTable<T = {[data: string]: any}> extends React.Component<IssueBookListProps, any> {
+  constructor(props: IssueBookListProps) {
     super(props);
     const params = new URLSearchParams(location.search);
     this.state = {
@@ -49,7 +78,11 @@ class IssueBookTable<T = {[data: string]: any}> extends React.Component<IssueBoo
       branchId: null,
       academicYearId: null,
       departmentId: null,
+      batchId: null,
+      studentId: null,
+      bookId: null,
       issueBooks: {},
+      issueBookDataList: [],
       issueBookData: {
        department: {
           id: '',
@@ -63,14 +96,93 @@ class IssueBookTable<T = {[data: string]: any}> extends React.Component<IssueBoo
       },
       departments:"",
       pageSize: 5,
-      search: ''
-
+      search: '',
+      columns: [
+        {
+            label: "Book Id",
+            key: 'id',
+            // isCaseInsensitive: true,
+        },
+        {
+          label: "IssueDate",
+          key: 'strIssueDate',
+          // isCaseInsensitive: false,
+      },
+      {
+        label: "DueDate",
+        key: 'strDueDate',
+        // isCaseInsensitive: false,
+    },
+    {
+      label: "Book Status",
+      key: 'bookStatus',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: "Student RollNo",
+      key: 'rollNo',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: "Student Name",
+      key: 'studentName',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: "NoOfCopies",
+      key: 'noOfCopies',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: "CopiesAvailable",
+      key: 'noOfCopiesAvailable',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: "Department",
+      key: 'name',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: "Batch Name",
+      key: 'batch',
+      // isCaseInsensitive: false,
+    },
+    {
+      label: 'Edit',
+      key: 'action',
+      renderCallback: (value: any, obj: any) => {
+    return <td>
+      <div className="d-inline-block">
+              <button className="btn btn-primary" onClick={(e: any) => this.editDetails(obj, e)}>
+                            {' '} Edit Book {' '}
+                        </button>   
+      </div>
+    </td>
+    },
+      isCaseInsensitive: true
+    },
+    {
+      label: 'Details',
+      key: 'action',
+      renderCallback: (value: any, obj: any) => {
+    return <td>
+      <div className="d-inline-block">
+              <button className="btn btn-primary" onClick={(e: any) => this.showDetail(obj, e)}>
+                          {' '} Details {' '}
+                          </button> 
+      </div>
+    </td>
+    },
+      isCaseInsensitive: true
+    }
+  ],
     };
     this.createBook = this.createBook.bind(this);
     this.createDepartment = this.createDepartment.bind(this);
     this.checkAllBooks = this.checkAllBooks.bind(this);
     this.onClickCheckbox = this.onClickCheckbox.bind(this);
-    this.createIssueBookRows = this.createIssueBookRows.bind(this);
+    // this.createIssueBookRows = this.createIssueBookRows.bind(this);
     this.showDetail = this.showDetail.bind(this);
     this.SetObject = this.SetObject.bind(this);
     this.createNoRecordMessage = this.createNoRecordMessage.bind(this);
@@ -83,16 +195,63 @@ class IssueBookTable<T = {[data: string]: any}> extends React.Component<IssueBoo
       activeTab: tabNo,
     });
   } 
-  async componentDidMount(){
-    await this.registerSocket();
-    console.log(
-      '5. check create catch departments:',
-      this.state.createLibraryDataCache.departments
-    );
-  }
+  // async componentDidMount(){
+  //   await this.registerSocket();
+  //   console.log(
+  //     '5. check create catch departments:',
+  //     this.state.createLibraryDataCache.departments
+  //   );
+  // }
+  async componentDidMount() {
+    console.log("component Did ram")
+    const { data } = await this.props.client.query({
+      query: ISSUE_BOOK_LIST,
+      fetchPolicy: 'no-cache'
+    })
   
+    const temp = data.getIssueBookList;
+    console.log("final Data : ", temp)
+    let i;
+    let ary = [];
+    let obj;
+    for (i in temp) {
+   obj = new IssueBookObj(temp[i].id, temp[i].strIssueDate, 
+    temp[i].strDueDate, temp[i].bookStatus, temp[i].student.rollNo, 
+    temp[i].student.studentName, temp[i].book.noOfCopies, 
+    temp[i].book.noOfCopiesAvailable, temp[i].department.name,
+     temp[i].batch.batch);
+  ary.push(obj);
+    }
+    console.log("final Data ", ary)
+    this.setState({
+      issueBookDataList: ary
+    });
+    await this.getIssueBook();
+  }
+  getIssueBook = async () => {
+    const { data } = await this.props.client.query({
+      query: GET_ISSUE_BOOK_LIST,
+      fetchPolicy: 'no-cache'
+    })
+    var arr = data.getIssueBookList;
+    let i;
+    let finalAry = [];
+    for (i in arr) {
+     let obj = new IssueBookObj(arr[i].id, arr[i].strIssueDate, 
+      arr[i].strDueDate, arr[i].bookStatus, arr[i].student.rollNo, 
+      arr[i].student.studentName, arr[i].book.noOfCopies, 
+      arr[i].book.noOfCopiesAvailable, arr[i].department.name, 
+      arr[i].batch.batch);
+      finalAry.push(obj);
+    }
+    console.log("Final Array : ", finalAry);
+    this.setState({
+      issueBookList: finalAry,
+    });
 
-  async registerSocket() {
+    console.log(" state variable Book data :::", this.state.bookList);
+  }
+async registerSocket() {
     const socket = wsCmsBackendServiceSingletonClient.getInstance();
 }
 async getcreateLibraryFilterDataCache() {
@@ -176,109 +335,109 @@ async getcreateLibraryFilterDataCache() {
     return retVal;
   }
   
-  createIssueBookRows(objAry: any) {
-    let { search } = this.state.issueBookData;
-    search = search.trim();
-    const mutateResLength = objAry.length;
-    const retVal = [];
-    for (let x = 0; x < mutateResLength; x++) {
-      const tempObj = objAry[x];
-      const issueBooks = tempObj.data.getIssueBookList;
-      const length = issueBooks.length;
-      for (let i = 0; i < length; i++) {
-        const issueBook = issueBooks[i];
-        if(search){
-          if(issueBook.bookTitle.indexOf(search) !== -1){
-            retVal.push(
-              <tr key={issueBook.id}>
-                <td>
-                  <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
-                  checked={issueBook.isChecked} 
-                  type="checkbox" 
-                  name="chk" 
-                  id={"chk" + issueBook.id} />
-                </td>
-                {/* <td>
-                    {issueBook.id}</td> */}
+  // createIssueBookRows(objAry: any) {
+  //   let { search } = this.state.issueBookData;
+  //   search = search.trim();
+  //   const mutateResLength = objAry.length;
+  //   const retVal = [];
+  //   for (let x = 0; x < mutateResLength; x++) {
+  //     const tempObj = objAry[x];
+  //     const issueBooks = tempObj.data.getIssueBookList;
+  //     const length = issueBooks.length;
+  //     for (let i = 0; i < length; i++) {
+  //       const issueBook = issueBooks[i];
+  //       if(search){
+  //         if(issueBook.bookTitle.indexOf(search) !== -1){
+  //           retVal.push(
+  //             <tr key={issueBook.id}>
+  //               <td>
+  //                 <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
+  //                 checked={issueBook.isChecked} 
+  //                 type="checkbox" 
+  //                 name="chk" 
+  //                 id={"chk" + issueBook.id} />
+  //               </td>
+  //               {/* <td>
+  //                   {issueBook.id}</td> */}
                 
-                <td>{issueBook.strIssueDate}</td>
-                <td>{issueBook.strDueDate}</td>
-                <td>{issueBook.bookStatus}</td>
-                <td>{issueBook.student.rollNo}</td>
-                <td>{issueBook.student.studentName}</td>
-                <td>{issueBook.book.noOfCopies}</td>
-                <td>{issueBook.book.noOfCopiesAvailable}</td>
-                <td>{issueBook.batch.batch}</td>
-                <td>{issueBook.department.name}</td>
-                <td>
+  //               <td>{issueBook.strIssueDate}</td>
+  //               <td>{issueBook.strDueDate}</td>
+  //               <td>{issueBook.bookStatus}</td>
+  //               <td>{issueBook.student.rollNo}</td>
+  //               <td>{issueBook.student.studentName}</td>
+  //               <td>{issueBook.book.noOfCopies}</td>
+  //               <td>{issueBook.book.noOfCopiesAvailable}</td>
+  //               <td>{issueBook.batch.batch}</td>
+  //               <td>{issueBook.department.name}</td>
+  //               <td>
                     
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetails(issueBook, e)}>
-                            {' '}
-                            Edit Book{' '}
-                        </button>
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetails(issueBook, e)}>
+  //                           {' '}
+  //                           Edit Book{' '}
+  //                       </button>
                     
-                </td>
-                <td>
+  //               </td>
+  //               <td>
                     
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetail(issueBook, e)}>
-                            {' '}
-                            Details{' '}
-                            </button> 
-                </td>
-              </tr>
-            );
-            console.log('print book obj:', issueBook);
-          }
-        } else{
-          retVal.push(
-            <tr key={issueBook.id}>
-              <td>
-                <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
-                checked={issueBook.isChecked} 
-                type="checkbox" 
-                name="chk" 
-                id={"chk" + issueBook.id} />
-              </td>
-              {/* <td>{issueBook.id}</td> */}
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetail(issueBook, e)}>
+  //                           {' '}
+  //                           Details{' '}
+  //                           </button> 
+  //               </td>
+  //             </tr>
+  //           );
+  //           console.log('print book obj:', issueBook);
+  //         }
+  //       } else{
+  //         retVal.push(
+  //           <tr key={issueBook.id}>
+  //             <td>
+  //               <input onClick={(e: any) => this.onClickCheckbox(i, e)} 
+  //               checked={issueBook.isChecked} 
+  //               type="checkbox" 
+  //               name="chk" 
+  //               id={"chk" + issueBook.id} />
+  //             </td>
+  //             {/* <td>{issueBook.id}</td> */}
               
-                <td>{issueBook.strIssueDate}</td>
-                <td>{issueBook.strDueDate}</td>
-                <td>{issueBook.bookStatus}</td>
-                <td>{issueBook.student.rollNo}</td>
-                <td>{issueBook.student.studentName}</td>
-                <td>{issueBook.book.noOfCopies}</td>
-                <td>{issueBook.book.noOfCopiesAvailable}</td>
-                <td>{issueBook.batch.batch}</td>
-                <td>{issueBook.department.name}</td>
-                <td>
+  //               <td>{issueBook.strIssueDate}</td>
+  //               <td>{issueBook.strDueDate}</td>
+  //               <td>{issueBook.bookStatus}</td>
+  //               <td>{issueBook.student.rollNo}</td>
+  //               <td>{issueBook.student.studentName}</td>
+  //               <td>{issueBook.book.noOfCopies}</td>
+  //               <td>{issueBook.book.noOfCopiesAvailable}</td>
+  //               <td>{issueBook.batch.batch}</td>
+  //               <td>{issueBook.department.name}</td>
+  //               <td>
                     
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetails(issueBook, e)}>
-                            {' '}
-                            Edit Book{' '}
-                            </button>
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetails(issueBook, e)}>
+  //                           {' '}
+  //                           Edit Book{' '}
+  //                           </button>
                     
-                </td>
-                <td>
+  //               </td>
+  //               <td>
                     
-                        <button className="btn btn-primary" 
-                        onClick={(e: any) => this.showDetail(issueBook, e)}>
-                            {' '}
-                            Details{' '}
-                            </button>
+  //                       <button className="btn btn-primary" 
+  //                       onClick={(e: any) => this.showDetail(issueBook, e)}>
+  //                           {' '}
+  //                           Details{' '}
+  //                           </button>
                     
-                </td>
-            </tr>
-          );
-          console.log('print issueBook obj:', issueBook);
-        }
-      }
-    }
+  //               </td>
+  //           </tr>
+  //         );
+  //         console.log('print issueBook obj:', issueBook);
+  //       }
+  //     }
+  //   }
 
-    return retVal;
-  }
+  //   return retVal;
+  // }
 
   onChange = (e: any) => {
     const { search } = e.nativeEvent.target;
@@ -316,13 +475,15 @@ async getcreateLibraryFilterDataCache() {
     }
   };
  
-  async showDetails(obj: any, e: any) {
+  async editDetails(obj: any, e: any) {
+    console.log("Edit Obj :: ",obj);
     await this.SetObject(obj);
     console.log('3. data in issueBookObj:', this.state.issueBookObj);
     await this.toggleTab(1);
   }
 
   async showDetail(obj: any, e: any) {
+    console.log("Edit Obj :: ",obj);
     await this.SetObject(obj);
     console.log('3. data in issueBookObj:', this.state.issueBookObj);
     await this.toggleTab(0);
@@ -338,7 +499,7 @@ async getcreateLibraryFilterDataCache() {
 
   onClick = (e: any) => {
     const { name, value } = e.nativeEvent.target;
-    const { getBookList } = this.props;
+    const { getIssueBookList } = this.props;
     const { issueBookData, departmentId } = this.state;
     e.preventDefault();
     let issueBookFilterInputObject = {
@@ -367,8 +528,9 @@ async getcreateLibraryFilterDataCache() {
   }  
 
 
+
   render() {
-    const { createLibraryDataCache, departmentId, issueBookData, activeTab, user,  } = this.state;
+    const { createLibraryDataCache, departmentId, issueBookData, activeTab, user, issueBookDataList  } = this.state;
   
     return (
       <section className="customCss">
@@ -382,7 +544,7 @@ async getcreateLibraryFilterDataCache() {
           </div>
           <div>
             <div className="student-flex">
-            <div>
+            {/* <div>
                 <label htmlFor="">Book</label>
                 <select
                   required
@@ -401,7 +563,7 @@ async getcreateLibraryFilterDataCache() {
                       )
                     : null}
                 </select>
-              </div>
+              </div> */}
               {/* <div>
                 <label htmlFor="">Department</label>
                 <select
@@ -422,11 +584,11 @@ async getcreateLibraryFilterDataCache() {
                     : null}
                 </select>
               </div> */}
-              <div className="margin-bott max-width-22">
+              {/* <div className="margin-bott max-width-22">
                 <label htmlFor="">Book Title</label>
                 <input type="text" name="search" value={issueBookData.search} onChange={this.onChange} />
-              </div>
-              <div id="srch" className="margin-bott">
+              </div> */}
+              {/* <div id="srch" className="margin-bott">
                     <label htmlFor="">Search</label>
                     <input
                       type="text"
@@ -435,10 +597,10 @@ async getcreateLibraryFilterDataCache() {
                       value={issueBookData.search}
                       onChange={this.onChange}
                     />
-                  </div>
-            <div className="m-b-1 bg-heading-bg studentSearch">
+                  </div> */}
+            {/* <div className="m-b-1 bg-heading-bg studentSearch"> */}
               {/* <h4 className="ptl-06"></h4> */}
-              <button 
+              {/* <button 
               className="btn btn-primary max-width-13" 
               id="btnFind" 
               name="btnFind" 
@@ -446,9 +608,9 @@ async getcreateLibraryFilterDataCache() {
               style={w180}>
                   Search IssuedBooks
             </button>
+            </div> */}
             </div>
-            </div>
-            <table id="Librarylistpage" className="striped-table fwidth bg-white">
+            {/* <table id="Librarylistpage" className="striped-table fwidth bg-white">
               <thead>
                 <tr>
                   <th>
@@ -459,7 +621,7 @@ async getcreateLibraryFilterDataCache() {
                     id="chkCheckedAll" />
                   </th>
                   {/* <th>IssueBook Id</th> */}
-                  <th>IssueDate</th>
+                  {/* <th>IssueDate</th>
                   <th>DueDate</th>
                   <th>Book Status</th>
                   <th>Student RollNo</th>
@@ -477,10 +639,11 @@ async getcreateLibraryFilterDataCache() {
                   this.createIssueBookRows(this.state.issueBookData.mutateResult)
                 }
               </tbody>
-            </table>
+            </table> */} 
+            <Table valueFromData={{ columns: this.state.columns, data: issueBookDataList }} perPageLimit={6} visiblecheckboxStatus={true} tableClasses={{ table: "alert-data-tabel", tableParent: "alerts-data-tabel", parentClass: "all-alert-data-table" }} searchKey="name" showingLine="Showing %start% to %end% of %total%" />
             {
               this.createNoRecordMessage(this.state.issueBookData.mutateResult)
-            }
+            } 
           </div>
         </div>
         </TabPane>
